@@ -17,9 +17,10 @@ async function getGameName(placeId) {
     } catch { return 'غير متاح'; }
 }
 
-async function checkRoblox() {
+async function checkRoblox(cookie) {
     try {
-        const currentUser = await noblox.login({ username: ROBLOX_USER, password: ROBLOX_PASS });
+        const currentUser = await noblox.setCookie(cookie);
+        if (!currentUser) throw new Error('فشل تعيين الكوكي');
         const presence = await noblox.getPresence({ userIds: [currentUser.UserID] });
         const p = presence.userPresences[0];
         const isOnline = (p.userPresenceType === 'Online' || p.userPresenceType === 'InGame');
@@ -45,12 +46,14 @@ async function checkRoblox() {
 async function start() {
     await bot.sendMessage(CHAT_ID, '🤖 جاري تسجيل الدخول إلى Roblox...');
     try {
-        await noblox.login({ username: ROBLOX_USER, password: ROBLOX_PASS });
-        await bot.sendMessage(CHAT_ID, '✅ تم تسجيل الدخول بنجاح. بدء المراقبة.');
-        await checkRoblox();
-        setInterval(checkRoblox, 30000);
+        const cookie = await noblox.getCookie(ROBLOX_PASS);
+        if (!cookie) throw new Error('فشل استخراج الكوكي');
+        await bot.sendMessage(CHAT_ID, '✅ تم استخراج الكوكي. جاري التحقق...');
+        await checkRoblox(cookie);
+        setInterval(() => checkRoblox(cookie), 30000);
     } catch (e) {
         await bot.sendMessage(CHAT_ID, `❌ فشل تسجيل الدخول: ${e.message}`);
+        console.error(e);
     }
 }
 start();
