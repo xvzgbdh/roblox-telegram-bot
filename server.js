@@ -1,4 +1,4 @@
-const noblox = require('noblox.js-ts');
+const noblox = require('noblox.js');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 
@@ -9,6 +9,7 @@ const CHAT_ID = '7783051926';
 
 const bot = new TelegramBot(BOT_TOKEN, { polling: false });
 let previousStatus = { isOnline: false, placeId: null };
+let robloxCookie = null;
 
 async function getGameName(placeId) {
     try {
@@ -17,12 +18,32 @@ async function getGameName(placeId) {
     } catch { return 'غير متاح'; }
 }
 
+async function loginRoblox() {
+    try {
+        // محاولة تسجيل الدخول باستخدام اسم المستخدم وكلمة المرور
+        const response = await axios.post('https://auth.roblox.com/v2/login', {
+            ctype: 'Username',
+            cvalue: ROBLOX_USER,
+            password: ROBLOX_PASS
+        });
+        // استخراج الكوكي من رؤوس الاستجابة
+        const setCookieHeader = response.headers['set-cookie'];
+        if (!setCookieHeader) throw new Error('لم يتم استلام كوكي');
+        robloxCookie = setCookieHeader.find(c => c.startsWith('.ROBLOSECURITY='));
+        if (!robloxCookie) throw new Error('كوكي الأمان غير موجود');
+        // تنظيف الكوكي
+        robloxCookie = robloxCookie.split(';')[0];
+        await noblox.setCookie(robloxCookie);
+        return true;
+    } catch (e) {
+        throw new Error(`فشل تسجيل الدخول: ${e.message}`);
+    }
+}
+
 async function checkRoblox() {
     try {
-        // تسجيل الدخول باستخدام cookieLogin
-        const currentUser = await noblox.cookieLogin(ROBLOX_PASS);
-        if (!currentUser) throw new Error('فشل تسجيل الدخول');
-
+        if (!robloxCookie) throw new Error('لم يتم تسجيل الدخول بعد');
+        const currentUser = await noblox.setCookie(robloxCookie);
         const presence = await noblox.getPresence({ userIds: [currentUser.UserID] });
         const p = presence.userPresences[0];
         const isOnline = (p.userPresenceType === 'Online' || p.userPresenceType === 'InGame');
@@ -48,7 +69,7 @@ async function checkRoblox() {
 async function start() {
     await bot.sendMessage(CHAT_ID, '🤖 جاري تسجيل الدخول إلى Roblox...');
     try {
-        await noblox.cookieLogin(ROBLOX_PASS);
+        await loginRoblox();
         await bot.sendMessage(CHAT_ID, '✅ تم تسجيل الدخول بنجاح. بدء المراقبة.');
         await checkRoblox();
         setInterval(checkRoblox, 30000);
