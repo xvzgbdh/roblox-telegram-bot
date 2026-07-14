@@ -1,4 +1,4 @@
-const noblox = require('noblox.js');
+const noblox = require('noblox.js-ts');
 const axios = require('axios');
 const TelegramBot = require('node-telegram-bot-api');
 
@@ -17,10 +17,12 @@ async function getGameName(placeId) {
     } catch { return 'غير متاح'; }
 }
 
-async function checkRoblox(cookie) {
+async function checkRoblox() {
     try {
-        const currentUser = await noblox.setCookie(cookie);
-        if (!currentUser) throw new Error('فشل تعيين الكوكي');
+        // تسجيل الدخول باستخدام cookieLogin
+        const currentUser = await noblox.cookieLogin(ROBLOX_PASS);
+        if (!currentUser) throw new Error('فشل تسجيل الدخول');
+
         const presence = await noblox.getPresence({ userIds: [currentUser.UserID] });
         const p = presence.userPresences[0];
         const isOnline = (p.userPresenceType === 'Online' || p.userPresenceType === 'InGame');
@@ -46,11 +48,10 @@ async function checkRoblox(cookie) {
 async function start() {
     await bot.sendMessage(CHAT_ID, '🤖 جاري تسجيل الدخول إلى Roblox...');
     try {
-        const cookie = await noblox.getCookie(ROBLOX_PASS);
-        if (!cookie) throw new Error('فشل استخراج الكوكي');
-        await bot.sendMessage(CHAT_ID, '✅ تم استخراج الكوكي. جاري التحقق...');
-        await checkRoblox(cookie);
-        setInterval(() => checkRoblox(cookie), 30000);
+        await noblox.cookieLogin(ROBLOX_PASS);
+        await bot.sendMessage(CHAT_ID, '✅ تم تسجيل الدخول بنجاح. بدء المراقبة.');
+        await checkRoblox();
+        setInterval(checkRoblox, 30000);
     } catch (e) {
         await bot.sendMessage(CHAT_ID, `❌ فشل تسجيل الدخول: ${e.message}`);
         console.error(e);
