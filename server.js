@@ -19,7 +19,7 @@ async function getGameName(placeId) {
 
 async function checkRoblox() {
     try {
-        const currentUser = await noblox.setCookie(ROBLOX_PASS);
+        const currentUser = await noblox.login({ username: ROBLOX_USER, password: ROBLOX_PASS });
         const presence = await noblox.getPresence({ userIds: [currentUser.UserID] });
         const p = presence.userPresences[0];
         const isOnline = (p.userPresenceType === 'Online' || p.userPresenceType === 'InGame');
@@ -38,13 +38,19 @@ async function checkRoblox() {
         }
     } catch (e) {
         console.error('خطأ:', e.message);
+        await bot.sendMessage(CHAT_ID, `⚠️ خطأ: ${e.message}`);
     }
 }
 
 async function start() {
-    await noblox.setCookie(ROBLOX_PASS);
-    await bot.sendMessage(CHAT_ID, '🤖 البوت يعمل على Render.com');
-    await checkRoblox();
-    setInterval(checkRoblox, 30000);
+    await bot.sendMessage(CHAT_ID, '🤖 جاري تسجيل الدخول إلى Roblox...');
+    try {
+        await noblox.login({ username: ROBLOX_USER, password: ROBLOX_PASS });
+        await bot.sendMessage(CHAT_ID, '✅ تم تسجيل الدخول بنجاح. بدء المراقبة.');
+        await checkRoblox();
+        setInterval(checkRoblox, 30000);
+    } catch (e) {
+        await bot.sendMessage(CHAT_ID, `❌ فشل تسجيل الدخول: ${e.message}`);
+    }
 }
 start();
