@@ -2,7 +2,7 @@
   "name": "roblox-bot",
   "version": "1.0.0",
   "dependencies": {
-    "noblox.js-ts": "^1.0.0",
+    "noblox.js": "^4.13.0",
     "axios": "^1.6.0",
     "node-telegram-bot-api": "^0.64.0"
   }
